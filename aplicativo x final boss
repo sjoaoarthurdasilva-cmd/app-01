@@ -1,0 +1,222 @@
+import os
+import customtkinter
+
+# Tema do app: dark é o modo escuro e light é o claro
+customtkinter.set_appearance_mode("dark")
+customtkinter.set_default_color_theme("blue")
+
+# Criando a janela, que é a estante onde as caixas vão ficar
+janela = customtkinter.CTk()
+janela.title("Quadro de Memória")
+janela.geometry("1000x1000")
+
+# Ícone (protegido caso o arquivo .ico não exista)
+pasta = os.path.dirname(os.path.abspath(__file__))
+icone_path = os.path.join(pasta, "app.ico")
+if os.path.exists(icone_path):
+    janela.iconbitmap(icone_path)
+
+# Tamanho da letra dos lembretes
+tamanho_letra = 50
+# Quantos lembretes cabem na lista
+limite = 50
+# Uma lista que guarda os widgets/dados de todos os lembretes
+textos_dos_lembretes = []
+
+
+# ================================================================
+# FUNÇÕES DOS LEMBRETES
+# ================================================================
+def atualizar_contador():
+    quantidade = len(textos_dos_lembretes)
+    if quantidade == 0:
+        contador.configure(text="Nenhum lembrete. Aproveita o descanso!")
+    elif quantidade == 1:
+        contador.configure(text="Você tem 1 lembrete")
+    else:
+        contador.configure(text=f"Você tem {quantidade} lembretes")
+
+
+def adicionar():
+    texto = entrada.get().strip()
+    if not texto:
+        contador.configure(text="Escreve um lembrete primeiro!")
+        return
+
+    if len(textos_dos_lembretes) >= limite:
+        contador.configure(text="Lista cheia! Conclui um lembrete antes.")
+        return
+
+    caixinha = customtkinter.CTkFrame(master=frame_lista)
+    caixinha.pack(padx=10, pady=5, fill="x")
+
+    # Criado com text_color vermelho (#FF3B30)
+    texto_lembrete = customtkinter.CTkLabel(
+        master=caixinha,
+        text=texto,
+        font=("Arial", tamanho_letra),
+        text_color="#FF3B30",
+        wraplength=550,
+    )
+    texto_lembrete.pack(side="left", padx=15, pady=10)
+
+    def concluir():
+        # Muda o texto para Azul Cobalto (#0020C2) quando clica em Feito
+        texto_lembrete.configure(text_color="#0020C2")
+        
+        # Desativa o botão para evitar cliques múltiplos durante a transição
+        btn_feito.configure(state="disabled")
+
+        if item_dados in textos_dos_lembretes:
+            textos_dos_lembretes.remove(item_dados)
+        
+        # Espera 500 milissegundos (meio segundo) para você ver o Azul Cobalto antes de sumir
+        janela.after(500, caixinha.destroy)
+        janela.after(500, atualizar_contador)
+
+    # Botão Feito rosa
+    btn_feito = customtkinter.CTkButton(
+        master=caixinha,
+        text="Feito ✓",
+        width=120,
+        height=50,
+        font=("Arial", 22),
+        fg_color="#D81B60",
+        hover_color="#C2185B",
+        command=concluir,
+    )
+    btn_feito.pack(side="right", padx=10, pady=10)
+
+    # Guardamos uma referência (tupla ou dicionário) para saber o que atualizar/remover
+    item_dados = {
+        "caixinha": caixinha,
+        "label": texto_lembrete
+    }
+    textos_dos_lembretes.append(item_dados)
+
+    entrada.delete(0, "end")
+    atualizar_contador()
+
+
+# ================================================================
+# FUNÇÕES DE ACESSIBILIDADE
+# ================================================================
+def aumentar():
+    global tamanho_letra
+    if tamanho_letra < 60:
+        tamanho_letra = tamanho_letra + 4
+        for item in textos_dos_lembretes:
+            item["label"].configure(font=("Arial", tamanho_letra))
+        info_tamanho.configure(text=f"Letra: {tamanho_letra}")
+
+
+def diminuir():
+    global tamanho_letra
+    if tamanho_letra > 16:
+        tamanho_letra = tamanho_letra - 4
+        for item in textos_dos_lembretes:
+            item["label"].configure(font=("Arial", tamanho_letra))
+        info_tamanho.configure(text=f"Letra: {tamanho_letra}")
+
+
+def trocar_tema():
+    tema_atual = customtkinter.get_appearance_mode()
+    if tema_atual == "Dark":
+        customtkinter.set_appearance_mode("light")
+        btn_tema.configure(text="Modo escuro")
+    else:
+        customtkinter.set_appearance_mode("dark")
+        btn_tema.configure(text="Modo claro")
+
+
+# ================================================================
+# 📦 CAIXA 1: BARRA DE ACESSIBILIDADE (lá no topo)
+# ================================================================
+frame_barra = customtkinter.CTkFrame(master=janela)
+frame_barra.pack(padx=10, pady=10, fill="x")
+
+btn_diminuir = customtkinter.CTkButton(
+    master=frame_barra,
+    text="A-",
+    width=60,
+    height=50,
+    font=("Arial", 22),
+    fg_color="#D81B60",
+    hover_color="#C2185B",
+    command=diminuir,
+)
+btn_diminuir.pack(side="left", padx=5, pady=10)
+
+btn_aumentar = customtkinter.CTkButton(
+    master=frame_barra,
+    text="A+",
+    width=60,
+    height=50,
+    font=("Arial", 22),
+    fg_color="#D81B60",
+    hover_color="#C2185B",
+    command=aumentar,
+)
+btn_aumentar.pack(side="left", padx=5, pady=10)
+
+info_tamanho = customtkinter.CTkLabel(
+    master=frame_barra, text=f"Letra: {tamanho_letra}", font=("Arial", 20)
+)
+info_tamanho.pack(side="left", padx=15)
+
+btn_tema = customtkinter.CTkButton(
+    master=frame_barra,
+    text="Modo claro",
+    height=50,
+    font=("Arial", 20),
+    fg_color="#D81B60",
+    hover_color="#C2185B",
+    command=trocar_tema,
+)
+btn_tema.pack(side="right", padx=10, pady=10)
+
+# ================================================================
+# 📦 CAIXA 2: NOVO LEMBRETE (onde você escreve)
+# ================================================================
+frame_entrada = customtkinter.CTkFrame(master=janela)
+frame_entrada.pack(padx=10, pady=10, fill="x")
+
+entrada = customtkinter.CTkEntry(
+    master=frame_entrada,
+    height=50,
+    font=("Arial", 24),
+    placeholder_text="Ex.: Tomar remédio às 8h",
+)
+entrada.pack(side="left", padx=10, pady=10, fill="x", expand=True)
+
+btn_adicionar = customtkinter.CTkButton(
+    master=frame_entrada,
+    text="Adicionar um lembrete",
+    height=50,
+    font=("Arial", 22),
+    fg_color="#D81B60",
+    hover_color="#C2185B",
+    command=adicionar,
+)
+btn_adicionar.pack(side="right", padx=10, pady=10)
+
+# ================================================================
+# 📦 CAIXA 3: LISTA DE LEMBRETES
+# ================================================================
+frame_lista = customtkinter.CTkScrollableFrame(master=janela)
+frame_lista.pack(padx=10, pady=10, fill="both", expand=True)
+
+# ================================================================
+# 📦 CAIXA 4: RODAPÉ COM O CONTADOR (lá embaixo)
+# ================================================================
+frame_rodape = customtkinter.CTkFrame(master=janela, fg_color="transparent")
+frame_rodape.pack(padx=10, pady=10, fill="x")
+
+contador = customtkinter.CTkLabel(
+    master=frame_rodape,
+    text="Nenhum lembrete. Aproveita o descanso!",
+    font=("Arial", 22),
+)
+contador.pack(pady=5)
+
+janela.mainloop()
